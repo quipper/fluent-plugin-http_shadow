@@ -24,9 +24,11 @@ module Fluent
     config_param :username, :string, :default => nil
     config_param :password, :string, :default => nil
     config_param :rate, :integer, :default => 100
+    config_param :rate_per_method_hash, :hash, :default => nil
     config_param :replace_hash, :hash, :default => nil
     config_param :protocol_format, :string, :default => 'http'
     config_param :no_send_header_pattern, :string, :default => nil
+    config_param :body_key, :string, :default => nil
 
     def configure(conf)
       super
@@ -80,7 +82,14 @@ module Fluent
       records.each do |record|
         host = @host || @host_hash[record[@host_key]]
         next if host.nil?
-        hydra.queue(get_request(host, record))
+        req = get_request(host, record)
+        method = req.options[:method]
+        if @rate_per_method_hash
+          rate_per_method = @rate_per_method_hash[method.to_s] || 100
+          hydra.queue(req) if (Random.rand(100) < rate_per_method)
+        else
+          hydra.queue(req)
+        end
       end
       hydra.run
     end
@@ -106,7 +115,10 @@ module Fluent
         headers: get_header(record)
       }
       option[:userpwd] = "#{@username}:#{@password}" if @username
-
+      if @body_key && ![nil, '', '-'].include?(record[@body_key])
+        # In Nginx access log, double quote is escaped to '\\x22'
+        option[:body] = record[@body_key].gsub(/\\x22/, '"')
+      end
       Typhoeus::Request.new("#{protocol}://" + host + uri.path, option)
     end
 

@@ -18,6 +18,7 @@ copy http request. use shadow proxy server.
   path_format ${path}
   method_key method
   header_hash { "Referer": "${referer}", "User-Agent": "${agent}" }
+  body_key body
 </match>
 ```
 
@@ -37,6 +38,7 @@ Assume following input is coming:
     "x_forwarded_proto": "http",
     "referer": "http://exsample.com/other/",
     "agent": "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko"
+    "body": "key=value"
   }
 ```
 
@@ -47,6 +49,8 @@ GET http://staging.exsample.com/hoge/?id=1
 #=>  HTTP HEADER
 #=>  "referer": "http://exsample.com/other/"
 #=>  "agent": "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko"
+#=>  REQUEST BODY
+#=>  "key=value"
 ```
 
 ## Examples(Virtual Host)
@@ -81,6 +85,26 @@ GET http://staging.exsample.com/hoge/?id=1
   method_key method
   header_hash { "Referer": "${referer}", "User-Agent": "${user_agent}" }
   cookie_hash {"rails-app_session": "${session_id}"}
+</match>
+```
+
+## Examples(use rate_per_method_hash)
+```
+<match http_shadow.exsample>
+  type http_shadow
+  host_hash { 
+    "www.example.com": "staging.example.com", 
+    "api.example.com": "api-staging.example.com", 
+    "blog.ipros.jp": "blog-staging.ipros.jp"
+  }
+  host_key host
+  path_format ${path}
+  method_key method
+  header_hash { "Referer": "${referer}", "User-Agent": "${user_agent}" }
+  rate_per_method_hash {
+    "get"   : 30,   # This means 30% requests of GET will be sent. Default(when not defined) value is 100.
+    "post"  : 90
+  }
 </match>
 ```
 
