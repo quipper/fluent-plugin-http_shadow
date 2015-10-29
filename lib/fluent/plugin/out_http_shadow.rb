@@ -2,6 +2,7 @@ module Fluent
   class HttpShadowOutput < Fluent::BufferedOutput
     Fluent::Plugin.register_output('http_shadow', self)
     SUPPORT_PROTOCOLS = ['http', 'https']
+    SUPPORT_METHODS = [:get, :head, :post, :put, :delete]
 
     def initialize
       super
@@ -84,6 +85,7 @@ module Fluent
         next if host.nil?
         req = get_request(host, record)
         method = req.options[:method]
+        next unless SUPPORT_METHODS.include?(method)
         if @rate_per_host_hash
           rate_per_host = @rate_per_host_hash[host] || 100
           hydra.queue(req) if (Random.rand(100) < rate_per_host)
