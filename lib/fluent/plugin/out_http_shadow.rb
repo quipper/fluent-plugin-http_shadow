@@ -19,6 +19,7 @@ module Fluent
     config_param :method_key, :string, :default => nil
     config_param :header_hash, :hash, :default => nil
     config_param :cookie_hash, :hash, :default => nil
+    config_param :cookie_key, :string, :default => nil
     config_param :params_key, :string, :default => nil
     config_param :max_concurrency, :integer, :default => 10
     config_param :timeout, :integer, :default => 5
@@ -156,7 +157,11 @@ module Fluent
           header[k] = value
         end
       end
-      header['Cookie'] = get_cookie_string(record) if @cookie_hash
+      if @cookie_hash
+        header['Cookie'] = get_cookie_string(record)
+      elsif @cookie_key
+        header['Cookie'] = record[@cookie_key]
+      end
       header
     end
 
