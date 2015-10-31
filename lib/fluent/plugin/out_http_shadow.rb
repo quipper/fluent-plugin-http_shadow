@@ -31,6 +31,7 @@ module Fluent
     config_param :protocol_format, :string, :default => 'http'
     config_param :no_send_header_pattern, :string, :default => nil
     config_param :body_key, :string, :default => nil
+    config_param :followlocation, :bool, :default => true
 
     def configure(conf)
       super
@@ -112,7 +113,7 @@ module Fluent
 
       option = {
         timeout: @timeout,
-        followlocation: true,
+        followlocation: @followlocation,
         method: method,
         params: params,
         headers: get_header(record)
