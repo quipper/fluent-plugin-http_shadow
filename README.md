@@ -88,7 +88,7 @@ GET http://staging.exsample.com/hoge/?id=1
 </match>
 ```
 
-## Examples(use rate_per_method_hash)
+## Examples(use rate_per_host_hash)
 ```
 <match http_shadow.exsample>
   type http_shadow
@@ -101,9 +101,9 @@ GET http://staging.exsample.com/hoge/?id=1
   path_format ${path}
   method_key method
   header_hash { "Referer": "${referer}", "User-Agent": "${user_agent}" }
-  rate_per_method_hash {
-    "get"   : 30,   # This means 30% requests of GET will be sent. Default(when not defined) value is 100.
-    "post"  : 90
+  rate_per_host_hash {
+    "staging.example.com"     : 30,   # This means 30% requests to staging.example.com will be sent. Default(when not defined) value is 100.
+    "api-staging.example.com" : 90
   }
 </match>
 ```

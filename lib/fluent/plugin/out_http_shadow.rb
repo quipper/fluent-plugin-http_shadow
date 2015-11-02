@@ -2,6 +2,7 @@ module Fluent
   class HttpShadowOutput < Fluent::BufferedOutput
     Fluent::Plugin.register_output('http_shadow', self)
     SUPPORT_PROTOCOLS = ['http', 'https']
+    SUPPORT_METHODS = [:get, :head, :post, :put, :delete]
 
     def initialize
       super
@@ -18,17 +19,19 @@ module Fluent
     config_param :method_key, :string, :default => nil
     config_param :header_hash, :hash, :default => nil
     config_param :cookie_hash, :hash, :default => nil
+    config_param :cookie_key, :string, :default => nil
     config_param :params_key, :string, :default => nil
     config_param :max_concurrency, :integer, :default => 10
     config_param :timeout, :integer, :default => 5
     config_param :username, :string, :default => nil
     config_param :password, :string, :default => nil
     config_param :rate, :integer, :default => 100
-    config_param :rate_per_method_hash, :hash, :default => nil
+    config_param :rate_per_host_hash, :hash, :default => nil
     config_param :replace_hash, :hash, :default => nil
     config_param :protocol_format, :string, :default => 'http'
     config_param :no_send_header_pattern, :string, :default => nil
     config_param :body_key, :string, :default => nil
+    config_param :followlocation, :bool, :default => true
 
     def configure(conf)
       super
@@ -84,9 +87,10 @@ module Fluent
         next if host.nil?
         req = get_request(host, record)
         method = req.options[:method]
-        if @rate_per_method_hash
-          rate_per_method = @rate_per_method_hash[method.to_s] || 100
-          hydra.queue(req) if (Random.rand(100) < rate_per_method)
+        next unless SUPPORT_METHODS.include?(method)
+        if @rate_per_host_hash
+          rate_per_host = @rate_per_host_hash[host] || 100
+          hydra.queue(req) if (Random.rand(100) < rate_per_host)
         else
           hydra.queue(req)
         end
@@ -109,7 +113,7 @@ module Fluent
 
       option = {
         timeout: @timeout,
-        followlocation: true,
+        followlocation: @followlocation,
         method: method,
         params: params,
         headers: get_header(record)
@@ -154,7 +158,11 @@ module Fluent
           header[k] = value
         end
       end
-      header['Cookie'] = get_cookie_string(record) if @cookie_hash
+      if @cookie_hash
+        header['Cookie'] = get_cookie_string(record)
+      elsif @cookie_key
+        header['Cookie'] = record[@cookie_key]
+      end
       header
     end
 
