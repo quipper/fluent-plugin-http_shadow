@@ -151,7 +151,7 @@ module Fluent
     def get_header(record)
       header = {}
       @headers.each do |k, v|
-        value = v.result(binding)
+        value = URI.decode(v.result(binding)) # because values are sometimes URI encoded
         if @no_send_header_pattern
           header[k] = value unless @no_send_header_pattern.match(value)
         else
